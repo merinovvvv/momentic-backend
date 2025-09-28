@@ -45,37 +45,23 @@ Backend of the "Momentic" mobile application - social network, a mixture of TikT
   - Управляет пользователями и ролями.
   - Настраивает рейтинги и статистику.
 
+---
+
 ### Диаграмма вариантов использования
-```mermaid
-usecaseDiagram
-actor Guest as G
-actor User as U
-actor Moderator as M
-actor Admin as A
+![Use Case Diagram](docs/images/usecase_diagram.png)
 
-rectangle Backend {
-  G --> (Регистрация / Авторизация)
+---
 
-  U --> (Загрузка видео)
-  U --> (Публикация видео)
-  U --> (Просмотр ленты друзей)
-  U --> (Просмотр глобальной ленты)
-  U --> (Добавление реакции)
-  U --> (Комментарий к видео)
-  U --> (Участие в рейтинге)
+## ER-диаграмма базы данных
+![ER Diagram](docs/images/er_diagram.png)
 
-  M --> (Модерация контента)
-  M --> (Блокировка пользователей)
-
-  A --> (Управление пользователями)
-  A --> (Управление ролями)
-  A --> (Администрирование статистики)
-}
-```
+---
 
 ## Ссылка на API сервера
 - Базовый URL API: https://api.momentic.app/v1  
 - Документация API (OpenAPI/Swagger): https://api.momentic.app/docs
+
+---  
 
 **Ключевые эндпоинты (пример):**
 - `POST https://api.momentic.app/v1/auth/login` — авторизация (студ. почта)
