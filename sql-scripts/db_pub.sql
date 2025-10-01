@@ -28,7 +28,7 @@ CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
     nickname VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
-    rating INTEGER NOT NULL DEFAULT 0.00 CHECK (rating >= 0),
+    rating INTEGER NOT NULL DEFAULT 0 CHECK (rating >= 0),
     max_streak INTEGER NOT NULL DEFAULT 0 CHECK (max_streak >= 0),
     current_streak INTEGER NOT NULL DEFAULT 0 CHECK (current_streak >= 0),
     max_reactions INTEGER NOT NULL DEFAULT 0 CHECK (max_reactions >= 0),
