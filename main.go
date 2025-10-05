@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/merinovvvv/momentic-backend/initializers"
+	"github.com/merinovvvv/momentic-backend/controllers"
 )
 
 func init() {
@@ -12,10 +13,6 @@ func init() {
 
 func main() {
 	router := gin.Default()
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	router.POST("/users", controllers.SignUp)
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
