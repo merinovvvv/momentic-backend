@@ -34,3 +34,5 @@ go.work.sum
 
 # database scripts
 db_script.sql
+
+uploads/

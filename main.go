@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/merinovvvv/momentic-backend/controllers"
 	"github.com/merinovvvv/momentic-backend/initializers"
 )
 
@@ -17,5 +18,6 @@ func main() {
 			"message": "pong",
 		})
 	})
+	router.POST("/videos", controllers.UploadVideo)
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
