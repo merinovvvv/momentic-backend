@@ -35,4 +35,5 @@ go.work.sum
 # database scripts
 db_script.sql
 
+# folder with videos
 uploads/

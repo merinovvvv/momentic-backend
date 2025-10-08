@@ -12,6 +12,7 @@ import (
 	"github.com/merinovvvv/momentic-backend/models"
 )
 
+// POST запрос на отправку видео
 func UploadVideo(c *gin.Context) {
 	authorIDStr := c.PostForm("author_id")
 	description := c.PostForm("description")
