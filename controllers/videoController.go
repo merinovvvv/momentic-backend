@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -60,4 +61,17 @@ func UploadVideo(c *gin.Context) {
 		"video_id": newVideo.VideoID,
 		"filepath": newVideo.Filepath,
 	})
+}
+
+// GET запрос на получение видео друзей пользователя
+func GetTodayFeedByUserID(c *gin.Context) {
+	var videos []models.Video
+
+	userIDStr = c.Param("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
+		return
+	}
+	//TODO getFriendsIDs
 }
