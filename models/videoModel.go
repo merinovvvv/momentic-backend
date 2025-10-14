@@ -1,5 +1,4 @@
 package models
-<<<<<<< HEAD
 
 import (
 	"time"
@@ -30,5 +29,3 @@ type User struct {
 func (Video) TableName() string {
 	return "videos"
 }
-=======
->>>>>>> origin/main
