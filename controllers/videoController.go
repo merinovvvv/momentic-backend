@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/merinovvvv/momentic-backend/initializers"
 	"github.com/merinovvvv/momentic-backend/models"
+	"gorm.io/gorm"
 )
 
 // POST запрос на отправку видео
@@ -130,4 +131,42 @@ func getFriendsIDs(userID int64) ([]int64, error) {
 		}
 	}
 	return friendIDs, nil
+}
+
+// DELETE запрос на удаления видео по id
+func DeleteVideo(c *gin.Context) {
+	videoIDStr := c.Param("video_id")
+
+	videoID, err := strconv.ParseInt(videoIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID видео"})
+		return
+	}
+
+	// TODO проверить что пользователь является автором
+
+	var video models.Video
+
+	result := initializers.DB.First(&video, videoID)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Видео не найдено"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при поиске"})
+		return
+	}
+
+	if err := os.Remove(video.Filepath); err != nil {
+		c.Error(err)
+	}
+
+	deleteResult := initializers.DB.Delete(&video)
+	if deleteResult.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при удалении записи"})
+		return
+	}
+
+	c.Status(http.StatusNoContent) //204
 }

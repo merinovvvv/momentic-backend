@@ -20,5 +20,6 @@ func main() {
 	})
 	router.POST("/videos", controllers.UploadVideo) //curl -X POST http://localhost:8080/videos -F "author_id=2" -F "description=Тестовое видео" -F "video_file=@file_path"
 	router.GET("/users/:user_id/friends/videos", controllers.GetTodayFeedByUserID)
+	router.DELETE("/videos/:video_id", controllers.DeleteVideo)
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
