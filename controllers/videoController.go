@@ -1,4 +1,5 @@
 package controllers
+<<<<<<< HEAD
 
 import (
 	"fmt"
@@ -75,3 +76,5 @@ func GetTodayFeedByUserID(c *gin.Context) {
 	}
 	//TODO getFriendsIDs
 }
+=======
+>>>>>>> origin/main
