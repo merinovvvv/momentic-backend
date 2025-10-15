@@ -170,3 +170,39 @@ func DeleteVideo(c *gin.Context) {
 
 	c.Status(http.StatusNoContent) //204
 }
+
+type UpdateDescriptionRequest struct {
+	Description string `json:"description" binding:"required"`
+}
+
+// PATCH запрос на изменение описания видео
+func UpdateVideoDescription(c *gin.Context) {
+	videoIDStr := c.Param("video_id")
+	videoID, err := strconv.ParseInt(videoIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID видео"})
+		return
+	}
+
+	var req UpdateDescriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса: требуется поле 'description'"})
+		return
+	}
+
+	result := initializers.DB.Model(&models.Video{}).
+		Where("video_id = ?", videoID).
+		Update("description", req.Description)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при обновлении"})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Видео не найдено или не было изменено"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Описание успешно обновлено"})
+}
