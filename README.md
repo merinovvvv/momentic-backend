@@ -71,3 +71,20 @@ Backend of the "Momentic" mobile application - social network, a mixture of TikT
 - `POST https://api.momentic.app/v1/reactions` — реакция/комментарий
 - `GET  https://api.momentic.app/v1/ranking` — рейтинг
 - `GET  https://api.momentic.app/v1/users/{id}` — профиль пользователя
+
+
+## Swagger API Documentation
+
+Данный проект содержит Swagger (OpenAPI) спецификацию для backend-части приложения.  
+Файл спецификации: `swaga.yaml`
+
+Swagger используется для документирования REST API, позволяя автоматически создавать интерактивную документацию, клиентские библиотеки и серверные заглушки.
+
+### Как открыть документацию
+
+1. Перейдите по ссылке [https://editor.swagger.io/](https://editor.swagger.io/)
+2. Нажмите **File → Import file**
+3. Выберите файл `swaga.yaml` (docs/swaga.yaml)
+4. Документация появится в правой части экрана.
+
+У Ярослава грязная голова
