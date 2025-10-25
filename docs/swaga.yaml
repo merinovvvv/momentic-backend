@@ -1,0 +1,199 @@
+openapi: 3.0.0
+info:
+  title: Momentic Auth & User API 🔑
+  version: 1.0.0
+  description: API для управления аутентификацией, верификацией и профилем пользователя.
+servers:
+  - url: http://127.0.0.1:8080/api
+    description: Локальный сервер разработки (из NetworkRoutes.swift)
+tags:
+  - name: Аутентификация
+    description: Регистрация, вход и верификация пользователей
+  - name: Профиль
+    description: Управление данными профиля пользователя
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserCredentials:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: SuperSecret123
+    AccessToken:
+      type: object
+      properties:
+        access:
+          type: string
+          description: Access Token (JWT) для аутентифицированных запросов.
+        refresh:
+          type: string
+          description: Refresh Token для обновления access-токена.
+    VerifyCodeRequest:
+      type: object
+      required:
+        - email
+        - code
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        code:
+          type: string
+          description: Шестизначный код верификации.
+          example: '123456'
+    VerificationResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Флаг успешного выполнения операции.
+        message:
+          type: string
+          description: Сообщение о результате (например, об ошибке).
+        token:
+          $ref: '#/components/schemas/AccessToken'
+          description: Появляется при успешной верификации/логине.
+    UserInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Имя
+        surname:
+          type: string
+          example: Фамилия
+        bio:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Биография пользователя.
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Ошибка валидации. Проверьте поля email и password.
+
+paths:
+  /auth/register/:
+    post:
+      summary: Регистрация нового пользователя
+      tags: [Аутентификация]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: Успешная регистрация. Пользователю отправлен код верификации.
+        '400':
+          description: Неверный формат данных или пользователь уже существует.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login/:
+    post:
+      summary: Вход пользователя (логин)
+      tags: [Аутентификация]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: Успешный вход. Возвращает Access и Refresh токены.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessToken'
+        '401':
+          description: Неверные учетные данные.
+
+  /auth/verify-code/:
+    post:
+      summary: Верификация аккаунта с помощью кода
+      tags: [Аутентификация]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyCodeRequest'
+      responses:
+        '200':
+          description: Успешная верификация. Аккаунт активирован и возвращает токены.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '400':
+          description: Неверный код верификации или срок действия кода истек.
+
+  /auth/resend-verify-code/:
+    post:
+      summary: Повторная отправка кода верификации
+      tags: [Аутентификация]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        '200':
+          description: Код верификации успешно отправлен повторно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '404':
+          description: Пользователь с таким email не найден.
+
+  /user/profile/:
+    patch:
+      summary: Обновление информации в профиле пользователя
+      tags: [Профиль]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+      responses:
+        '200':
+          description: Информация в профиле успешно обновлена.
+        '401':
+          description: Отсутствует или недействителен Access Token.
+        '400':
+          description: Неверный формат данных для обновления.
