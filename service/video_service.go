@@ -114,6 +114,10 @@ func (s *videoServiceImpl) UpdateDescription(ctx context.Context, videoID int64,
 		if errors.Is(err, repository.ErrRecordNotFound) {
 			return ErrVideoNotFound
 		}
+		if err != nil {
+			return err
+		}
+		log.Printf("INFO: Video description update skipped. ID: %d", videoID)
 	}
 
 	log.Printf("INFO: Video description updated successfully. ID: %d", videoID)

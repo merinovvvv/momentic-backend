@@ -20,11 +20,11 @@ func init() {
 
 func main() {
 	logRotator := &lumberjack.Logger{
-		Filename:   "log/log.txt", // Путь к файлу
-		MaxSize:    100,           // Размер в мегабайтах (МБ) до ротации
-		MaxBackups: 3,             // Макс. количество архивных файлов (log.txt.1, log.txt.2 и т.д.)
-		MaxAge:     28,            // Макс. количество дней для хранения архивов
-		Compress:   true,          // Сжимать старые файлы
+		Filename:   "log/log.txt",
+		MaxSize:    100, // Размер в МБ до ротации
+		MaxBackups: 3,
+		MaxAge:     28, // количество дней для хранения архивов
+		Compress:   true,
 	}
 	multiWriter := io.MultiWriter(os.Stdout, logRotator)
 	log.SetOutput(multiWriter)
