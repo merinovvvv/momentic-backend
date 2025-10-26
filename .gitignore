@@ -37,3 +37,6 @@ db_script.sql
 
 # folder with videos
 uploads/
+
+# folder with logs
+log/

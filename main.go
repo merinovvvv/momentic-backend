@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/merinovvvv/momentic-backend/initializers"
 	"github.com/merinovvvv/momentic-backend/repository"
 	"github.com/merinovvvv/momentic-backend/service"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func init() {
@@ -17,20 +19,23 @@ func init() {
 }
 
 func main() {
+	logRotator := &lumberjack.Logger{
+		Filename:   "log/log.txt", // Путь к файлу
+		MaxSize:    100,           // Размер в мегабайтах (МБ) до ротации
+		MaxBackups: 3,             // Макс. количество архивных файлов (log.txt.1, log.txt.2 и т.д.)
+		MaxAge:     28,            // Макс. количество дней для хранения архивов
+		Compress:   true,          // Сжимать старые файлы
+	}
+	multiWriter := io.MultiWriter(os.Stdout, logRotator)
+	log.SetOutput(multiWriter)
+	gin.DefaultWriter = multiWriter
+
 	router := gin.Default()
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
-	logFile, err := os.OpenFile("log/log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatalf("Ошибка открытия файла логов: %v", err)
-	}
-	defer logFile.Close()
-
-	log.SetOutput(logFile)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	db := initializers.DB
 	videoRepo := repository.NewVideoRepository(db)
@@ -44,5 +49,6 @@ func main() {
 	router.PATCH("/videos/:video_id", videoController.UpdateVideoDescription)
 
 	router.DELETE("/videos/:video_id", videoController.DeleteVideo)
+	log.Println("INFO: Server started.")
 	router.Run() // listens on 0.0.0.0:8080 by default
 }

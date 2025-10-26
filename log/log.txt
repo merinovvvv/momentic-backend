@@ -7,3 +7,23 @@
 2025/10/25 22:50:31 video_service.go:118: INFO: Video description updated successfully. ID: 5
 2025/10/25 22:52:48 video_service.go:96: INFO: Video deleted successfully. ID: 6
 2025/10/25 23:01:28 video_service.go:85: ERROR: Video not found. Video id 6:
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /ping                     --> main.main.func1 (3 handlers)
+[GIN-debug] POST   /videos                   --> github.com/merinovvvv/momentic-backend/controllers.(*VideoController).UploadVideo-fm (3 handlers)
+[GIN-debug] GET    /users/:user_id/friends/videos --> github.com/merinovvvv/momentic-backend/controllers.(*VideoController).GetTodayFeedByUserID-fm (3 handlers)
+[GIN-debug] PATCH  /videos/:video_id         --> github.com/merinovvvv/momentic-backend/controllers.(*VideoController).UpdateVideoDescription-fm (3 handlers)
+[GIN-debug] DELETE /videos/:video_id         --> github.com/merinovvvv/momentic-backend/controllers.(*VideoController).DeleteVideo-fm (3 handlers)
+2025/10/26 16:23:47 INFO: Server started.
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies for details.
+[GIN-debug] Environment variable PORT="8080"
+[GIN-debug] Listening and serving HTTP on :8080
+2025/10/26 16:24:34 INFO: Video description updated successfully. ID: 5
+[GIN] 2025/10/26 - 16:24:34 | 200 |     47.1465ms |       127.0.0.1 | PATCH    "/videos/5"
+2025/10/26 16:25:43 INFO: Successfully retrieved 0 videos for user 2.
+[GIN] 2025/10/26 - 16:25:43 | 200 |     15.9266ms |       127.0.0.1 | GET      "/users/2/friends/videos"
