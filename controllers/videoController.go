@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,173 +11,125 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/merinovvvv/momentic-backend/initializers"
-	"github.com/merinovvvv/momentic-backend/models"
-	"gorm.io/gorm"
+	"github.com/merinovvvv/momentic-backend/service"
 )
 
-// POST запрос на отправку видео
-func UploadVideo(c *gin.Context) {
-	authorIDStr := c.PostForm("author_id")
-	description := c.PostForm("description")
-	if authorIDStr == "" {
-		c.JSON(400, gin.H{"error": "Поле author_id обязательно"})
-		return
-	}
-	authorID, err := strconv.ParseInt(authorIDStr, 10, 64)
-	if err != nil {
-		c.JSON(400, gin.H{"error": "Неверный формат author_id"})
-		return
-	}
-	file, err := c.FormFile("video_file") // (multipart/form-data)
-	if err != nil {
-		c.JSON(400, gin.H{"error": fmt.Sprintf("Ошибка при получении файла: %s", err.Error())})
-		return
-	}
+const MaxFileSize = 200 << 20
 
-	ext := filepath.Ext(file.Filename)
-	filename := fmt.Sprintf("%d_%d%s", authorID, time.Now().UnixNano(), ext)
-	savePath := filepath.Join("uploads", filename) //создать папку "uploads"
-
-	// Сохраняем файл на диске
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		c.JSON(500, gin.H{"error": fmt.Sprintf("Не удалось сохранить файл на диске: %s", err.Error())})
-		return
-	}
-
-	// 4. Запись  в базу данных
-	newVideo := models.Video{
-		Filepath:    savePath,
-		AuthorID:    authorID,
-		Description: description,
-	}
-
-	result := initializers.DB.Create(&newVideo)
-	if result.Error != nil {
-		os.Remove(savePath) //удаление файла при ошибке
-		c.JSON(500, gin.H{"error": "Ошибка при сохранении данных о видео в БД"})
-		return
-	}
-
-	c.JSON(201, gin.H{
-		"message":  "Видео успешно загружено и опубликовано",
-		"video_id": newVideo.VideoID,
-		"filepath": newVideo.Filepath,
-	})
+// VideoController содержит зависимость от сервиса
+type VideoController struct {
+	service service.VideoService
 }
 
-// GET запрос на получение видео друзей пользователя
-func GetTodayFeedByUserID(c *gin.Context) {
-	var videos []models.Video
-
-	userIDStr := c.Param("user_id")
-	userID, err := strconv.ParseInt(userIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
-		return
-	}
-	friendIDs, err := getFriendsIDs(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении списка друзей"})
-		return
-	}
-	if len(friendIDs) == 0 {
-		c.JSON(http.StatusOK, []models.Video{})
-		return
-	}
-	startOfDay := time.Now().Truncate(24 * time.Hour) // 00 00
-	endOfToday := startOfDay.Add(24 * time.Hour)      // 23 59
-
-	result := initializers.DB.
-		Where("author_id IN (?)", friendIDs).
-		Where("created_at >= ? AND created_at < ?", startOfDay, endOfToday).
-		Order("created_at DESC").
-		Find(&videos)
-
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при получении видео"})
-		return
-	}
-
-	c.JSON(http.StatusOK, videos)
-}
-
-// Получение списка друзей по userid
-func getFriendsIDs(userID int64) ([]int64, error) {
-	if userID == 0 {
-		return nil, errors.New("invalid user ID")
-	}
-	var friendships []models.Friendship
-
-	result := initializers.DB.
-		Where("status = ?", models.StatusFriends).
-		Where("user_id1 = ? OR user_id2 = ?", userID, userID).
-		Find(&friendships)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	if len(friendships) == 0 {
-		return []int64{}, nil
-	}
-
-	friendIDs := make([]int64, 0, len(friendships))
-
-	for _, f := range friendships {
-		if f.UserID1 == userID {
-			friendIDs = append(friendIDs, f.UserID2)
-		} else {
-			friendIDs = append(friendIDs, f.UserID1)
-		}
-	}
-	return friendIDs, nil
-}
-
-// DELETE запрос на удаления видео по id
-func DeleteVideo(c *gin.Context) {
-	videoIDStr := c.Param("video_id")
-
-	videoID, err := strconv.ParseInt(videoIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID видео"})
-		return
-	}
-
-	// TODO проверить что пользователь является автором
-
-	var video models.Video
-
-	result := initializers.DB.First(&video, videoID)
-
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Видео не найдено"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при поиске"})
-		return
-	}
-
-	if err := os.Remove(video.Filepath); err != nil {
-		c.Error(err)
-	}
-
-	deleteResult := initializers.DB.Delete(&video)
-	if deleteResult.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при удалении записи"})
-		return
-	}
-
-	c.Status(http.StatusNoContent) //204
+func NewVideoController(s service.VideoService) *VideoController {
+	return &VideoController{service: s}
 }
 
 type UpdateDescriptionRequest struct {
 	Description string `json:"description" binding:"required"`
 }
 
-// PATCH запрос на изменение описания видео
-func UpdateVideoDescription(c *gin.Context) {
+// --- UploadVideo (POST) ---
+func (vc *VideoController) UploadVideo(c *gin.Context) {
+	// 1. HTTP-логика: Извлечение данных и файла
+	authorIDStr := c.PostForm("author_id")
+	description := c.PostForm("description")
+
+	authorID, err := strconv.ParseInt(authorIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат author_id"})
+		return
+	}
+
+	file, err := c.FormFile("video_file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Ошибка при получении файла: %s", err.Error())})
+		return
+	}
+
+	if file.Size > MaxFileSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Размер файла превышает лимит"})
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	filename := fmt.Sprintf("%d_%d%s", authorID, time.Now().UnixNano(), ext)
+	savePath := filepath.Join("uploads", filename)
+
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		log.Printf("ERROR: Failed to save file to disk at %s: %v", savePath, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Не удалось сохранить файл на диске: %s", err.Error())})
+		return
+	}
+
+	video, err := vc.service.UploadVideo(c.Request.Context(), savePath, authorID, description)
+
+	if err != nil {
+		os.Remove(savePath)
+		if errors.Is(err, service.ErrAuthorIDRequired) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("FATAL: Service failed during UploadVideo: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных о видео в БД"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":  "Видео успешно загружено и опубликовано",
+		"video_id": video.VideoID,
+		"filepath": video.Filepath,
+	})
+}
+
+// --- GetTodayFeedByUserID (GET) ---
+func (vc *VideoController) GetTodayFeedByUserID(c *gin.Context) {
+	userIDStr := c.Param("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
+		return
+	}
+
+	videos, err := vc.service.GetTodayFeed(c.Request.Context(), userID)
+
+	if err != nil {
+		if errors.Is(err, service.ErrNoFriends) {
+			c.JSON(http.StatusOK, []interface{}{}) // 200 OK с пустым массивом
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении ленты видео"})
+		return
+	}
+
+	c.JSON(http.StatusOK, videos)
+}
+
+// --- DeleteVideo (DELETE) ---
+func (vc *VideoController) DeleteVideo(c *gin.Context) {
+	videoIDStr := c.Param("video_id")
+	videoID, err := strconv.ParseInt(videoIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID видео"})
+		return
+	}
+
+	err = vc.service.DeleteVideo(c.Request.Context(), videoID)
+
+	if err != nil {
+		if errors.Is(err, service.ErrVideoNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Видео не найдено"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении видео"})
+		return
+	}
+
+	c.Status(http.StatusNoContent) // 204
+}
+
+// --- UpdateVideoDescription (PATCH) ---
+func (vc *VideoController) UpdateVideoDescription(c *gin.Context) {
 	videoIDStr := c.Param("video_id")
 	videoID, err := strconv.ParseInt(videoIDStr, 10, 64)
 	if err != nil {
@@ -186,21 +139,24 @@ func UpdateVideoDescription(c *gin.Context) {
 
 	var req UpdateDescriptionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса: требуется поле 'description'"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Требуется поле 'description'"})
 		return
 	}
 
-	result := initializers.DB.Model(&models.Video{}).
-		Where("video_id = ?", videoID).
-		Update("description", req.Description)
+	// Вызов сервиса
+	err = vc.service.UpdateDescription(c.Request.Context(), videoID, req.Description)
 
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при обновлении"})
-		return
-	}
-
-	if result.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Видео не найдено или не было изменено"})
+	// Обработка ошибок
+	if err != nil {
+		if errors.Is(err, service.ErrVideoNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Видео не найдено"})
+			return
+		}
+		if errors.Is(err, service.ErrDescriptionTooLong) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить описание"})
 		return
 	}
 
