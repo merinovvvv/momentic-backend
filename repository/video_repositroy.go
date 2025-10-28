@@ -26,7 +26,6 @@ type videoRepositoryImpl struct {
 	db *gorm.DB
 }
 
-// NewVideoRepository создает новый репозиторий
 func NewVideoRepository(db *gorm.DB) VideoRepository {
 	return &videoRepositoryImpl{db: db}
 }

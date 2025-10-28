@@ -21,11 +21,6 @@ type Video struct {
 	CreatedAt time.Time `gorm:"column:created_at;type:TIMESTAMPTZ;not null;default:now()"`
 }
 
-// TODO delete User 'cause of UserModel
-type User struct {
-	UserID int64 `gorm:"column:user_id;primaryKey;autoIncrement"`
-}
-
 func (Video) TableName() string {
 	return "videos"
 }
