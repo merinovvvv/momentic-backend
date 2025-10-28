@@ -39,8 +39,13 @@ func main() {
 
 	db := initializers.DB
 	videoRepo := repository.NewVideoRepository(db)
+	reactionRepo := repository.NewReactionRepository(db)
+
 	videoService := service.NewVideoService(videoRepo)
+	reactionService := service.NewReactionService(reactionRepo)
+
 	videoController := controllers.NewVideoController(videoService)
+	reactionController := controllers.NewReactionController(reactionService)
 	//curl -X POST http://localhost:8080/videos -F "author_id=2" -F "description=Тестовое видео" -F "video_file=@file_path"
 	router.POST("/videos", videoController.UploadVideo)
 
@@ -49,6 +54,10 @@ func main() {
 	router.PATCH("/videos/:video_id", videoController.UpdateVideoDescription)
 
 	router.DELETE("/videos/:video_id", videoController.DeleteVideo)
+
+	router.POST("/videos/:video_id/reactions", reactionController.HandleReaction)
+	router.DELETE("/videos/:video_id/reactions", reactionController.RemoveReaction)
+	router.GET("/videos/:video_id/reactions", reactionController.GetVideoReactions)
 	log.Println("INFO: Server started.")
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
