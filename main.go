@@ -14,8 +14,10 @@ func init() {
 
 func main() {
 	router := gin.Default()
-	router.POST("/signup", controllers.SignUp)
-	router.POST("/login", controllers.Login)
+	router.POST("/auth/register", controllers.SignUp)
+	router.PATCH("/auth/register", middleware.RequireAuth)
+	router.POST("/auth/login", controllers.Login)
+	//router.POST("/auth/verify-code", controllers.EmailVerifiction, controllers.Login)
 	router.GET("/validate", middleware.RequireAuth, controllers.Validate)
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
