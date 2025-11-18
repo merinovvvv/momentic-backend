@@ -29,11 +29,13 @@ func RequireAuth(c *gin.Context) {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 		var user models.User
-		err := initializers.DB.First(&user, claims["exp"]).Error
+		err := initializers.DB.First(&user, claims["sub"]).Error
 		if err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
-
+        if user.Verified == false {
+            c.AbortWithStatus(http.StatusForbidden)
+        }
 		c.Set("user", user)
 		c.Next()
 	} else {

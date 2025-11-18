@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/merinovvvv/momentic-backend/initializers"
 	"github.com/merinovvvv/momentic-backend/models"
+	"github.com/merinovvvv/momentic-backend/util"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -19,10 +21,8 @@ func SignUp(c *gin.Context) {
 
 	var body struct {
 		Email    string `json:"email" binding:"required,email"`
-		Nickname string `json:"nickname" binding:"required"`
 		Password string `json:"password" binding:"required,min=8"`
 	}
-
 	
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "details": err.Error()})
@@ -37,12 +37,21 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
-	user := models.User{Password: string(hash), Nickname: body.Nickname, Email: body.Email}
+	user := models.User{Password: string(hash), Email: body.Email}
 	if err := initializers.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create user",
 		})
 	}
+
+	verificationCode := fmt.Sprintf("%05d", rand.Intn(99999))
+	if err := util.SendVerificationEmail(user.Email, verificationCode); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to send verification email",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{})
 }
 
@@ -54,7 +63,7 @@ func Login(c *gin.Context) {
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
-	}	
+	}
 
 	var user models.User
 	err := initializers.DB.First(&user, "email = ?", body.Email).Error
@@ -68,6 +77,12 @@ func Login(c *gin.Context) {
 				"error":"Error while oppening db",
 			})
 		}
+		return
+	}
+	if user.Verified == false {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":"Email not verified",
+		})
 		return
 	}
 	
@@ -86,7 +101,7 @@ func Login(c *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessString, err := accessToken.SignedString([]byte(os.Getenv("SECRET")))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":"Failed to create access token",
 		})
 		return
@@ -152,7 +167,7 @@ func Refresh(c *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessString, err := accessToken.SignedString([]byte(os.Getenv("SECRET")))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":"Failed to create access token",
 		})
 		return
@@ -166,7 +181,7 @@ func Refresh(c *gin.Context) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshString, err := refreshToken.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":"Failed to create refresh token",
 		})
 		return
@@ -188,4 +203,100 @@ func Validate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": user,
 	})
+}
+
+func ChangeUserInfo(c *gin.Context) {
+	var body struct {
+		Password string `json:"password" binding:"required,min=8"`
+		Name string `json:"name"`
+		Surname string `json:"surname"`
+		
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "details": err.Error()})
+		return
+	}
+	
+}
+func VerifyEmail(c *gin.Context) {
+	var body struct {
+		 Email    string `json:"email" binding:"required,email"`
+		 // Password string `json:"password" binding:"required,min=8"`
+		 Code     string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "details": err.Error()})
+		return
+	}
+	var emailVerification models.EmailVerification
+	err := initializers.DB.First(&emailVerification, "email = ?", body.Email).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":"No such user or email is already verified",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":"Error while oppening db",
+			})
+		}
+		return
+	}
+	if emailVerification.ExpiresAt.Before(time.Now()) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":"Verification code expired",
+		})
+		return
+	}
+	
+	//TODO: make it transaction
+	if err := initializers.DB.Delete(&emailVerification).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":"Failed to delete verification code",
+		})
+		return
+	}
+	if err := initializers.DB.Model(&models.User{}).Where("email = ?", body.Email).Update("verified", true).Error; err != nil { 
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":"No such user",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Email verified",
+	})
+}
+
+func ResendEmailVerification(c *gin.Context) {
+	var body struct {
+		Email    string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "details": err.Error()})
+		return
+	}
+	var user models.User
+	err := initializers.DB.First(&user, "email = ?", body.Email).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":"No such user",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":"Error while oppening db",
+			})
+		}
+		return
+	}
+	verificationCode := fmt.Sprintf("%05d", rand.Intn(99999))
+	if err := util.SendVerificationEmail(user.Email, verificationCode); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to send verification email",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
 }
