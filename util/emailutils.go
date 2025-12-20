@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -113,4 +115,17 @@ func SendVerificationEmail(receiver, code string) error {
 	}
 	log.Printf("Email sent from %s to %s", sender, receiver)
 	return nil
+}
+
+// Generates a random number of given length
+func GenerateVerificationCode(length int) (error, string) {
+	if length < 1 || length > 9 {
+		return errors.New("length must be between 1 and 9"), ""
+	}
+    var max int
+    for i := range length {
+        max += 9*int((math.Pow(10, float64(i))))
+    }
+	
+	return nil, fmt.Sprintf("%0*d",length, rand.Intn(max))
 }
