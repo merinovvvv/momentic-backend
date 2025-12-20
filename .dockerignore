@@ -1,0 +1,16 @@
+.git/
+.gitignore
+
+docker-compose.yml
+Dockerfile
+.dockerignore
+README.md
+
+*.go
+go.mod
+go.sum
+
+.vscode/
+.idea/
+
+!my-app-binary

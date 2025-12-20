@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. THE BACKEND (Golang)
+  backend:
+    build: .
+    container_name: app_backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres_db
+      - DB_USER=myuser
+      - DB_PASSWORD=mypassword
+      - DB_NAME=mydatabase
+      - DB_PORT=5432
+      - STORAGE_ENDPOINT=minio_storage:9000
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadmin
+    depends_on:
+      - db
+      - storage
+    networks:
+      - app_network
+
+  # 2. THE DATABASE (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: app_db
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # 3. THE FILE STORAGE (MinIO - S3 Compatible)
+  storage:
+    image: minio/minio
+    container_name: app_storage
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  app_network:
+    driver: bridge
