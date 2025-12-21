@@ -10,9 +10,9 @@ services:
       - "8080:8080"
     environment:
       - DB_HOST=postgres_db
-      - DB_USER=myuser
-      - DB_PASSWORD=mypassword
-      - DB_NAME=mydatabase
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_USER_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
       - DB_PORT=5432
       - STORAGE_ENDPOINT=minio_storage:9000
       - STORAGE_ACCESS_KEY=minioadmin
@@ -29,9 +29,9 @@ services:
     container_name: app_db
     restart: always
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -44,8 +44,8 @@ services:
     restart: always
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      - MINIO_ROOT_USER=${MINIO_ADMIN}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
     volumes:
       - minio_data:/data
     ports:
