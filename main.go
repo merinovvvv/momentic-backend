@@ -40,6 +40,8 @@ func main() {
 		})
 	})
 
+	// Global chat via WebSocket (for iOS)
+	router.GET("/ws/chat", ws.ServeChatWs)
 	db := initializers.DB
 	videoRepo := repository.NewVideoRepository(db)
 	reactionRepo := repository.NewReactionRepository(db)
@@ -84,6 +86,9 @@ func main() {
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Broadcast sent"})
 	})
+
+	videoHub := ws.NewVideoHub()
+	go videoHub.Run()
 
 	log.Println("INFO: Server started.")
 
