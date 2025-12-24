@@ -49,10 +49,16 @@ func main() {
 	videoService := service.NewVideoService(videoRepo)
 	reactionService := service.NewReactionService(reactionRepo)
 
+	commentRepo := repository.NewCommentRepository(db)
+	commentController := controllers.NewCommentController(commentRepo)
+
 	videoController := controllers.NewVideoController(videoService)
 	reactionController := controllers.NewReactionController(reactionService)
 	//curl -X POST http://localhost:8080/videos -F "author_id=2" -F "description=Тестовое видео" -F "video_file=@file_path"
 	router.POST("/videos", videoController.UploadVideo)
+
+	router.POST("/videos/:video_id/comments", commentController.PostComment)
+	router.GET("/videos/:video_id/comments", commentController.GetCommentsByVideoID)
 
 	router.GET("/users/:user_id/friends/videos", videoController.GetTodayFeedByUserID)
 
