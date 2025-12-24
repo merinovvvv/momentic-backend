@@ -79,7 +79,7 @@ func (r *reactionRepositoryImpl) GetReactingUsers(ctx context.Context, videoID i
 	for i, r := range reactions {
 		response[i] = models.ReactingUserResponse{
 			UserID:   r.UserID,
-			Nickname: r.User.Nickname,
+			Nickname: r.User.Name,
 			Reaction: r.Reaction,
 		}
 	}

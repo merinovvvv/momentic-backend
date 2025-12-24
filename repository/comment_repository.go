@@ -31,7 +31,7 @@ func (r *commentRepositoryImpl) Create(ctx context.Context, comment *models.Comm
 	}
 
 	// 3. Заполняем поле Nickname (так как оно помечено gorm:"-")
-	comment.Nickname = comment.User.Nickname
+	comment.Nickname = comment.User.Name + " " + comment.User.Surname
 
 	return nil
 }
@@ -51,7 +51,7 @@ func (r *commentRepositoryImpl) GetByVideoID(ctx context.Context, videoID int64)
 
 	// Заполняем виртуальные поля Nickname для всего списка
 	for _, c := range comments {
-		c.Nickname = c.User.Nickname
+		c.Nickname = c.User.Name + " " + c.User.Surname
 	}
 
 	return comments, nil
