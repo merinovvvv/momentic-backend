@@ -301,6 +301,7 @@ func ResendEmailVerification(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{})
+}
 
 type UserController struct {
 	Repo repository.UserRepository // Use concrete type from repository package
