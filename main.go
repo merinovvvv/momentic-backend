@@ -43,6 +43,14 @@ func main() {
 	// Global chat via WebSocket (for iOS)
 	router.GET("/ws/chat", ws.ServeChatWs)
 	db := initializers.DB
+	// Avatar upload endpoint for user
+	userRepo := repository.NewUserRepository(db)
+	userController := controllers.NewUserController(userRepo)
+	router.PATCH("/user/avatar/", userController.UpdateAvatar)
+
+	// Serve static for avatars
+	router.Static("/static", "./uploads")
+
 	videoRepo := repository.NewVideoRepository(db)
 	reactionRepo := repository.NewReactionRepository(db)
 
