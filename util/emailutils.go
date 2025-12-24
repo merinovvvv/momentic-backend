@@ -16,7 +16,7 @@ import (
 
 	"github.com/merinovvvv/momentic-backend/initializers"
 	"github.com/merinovvvv/momentic-backend/models"
-	"gorm.io/gorm"
+	// "gorm.io/gorm"
 )
 
 func SendVerificationEmail(receiver, code string) error {
@@ -104,15 +104,18 @@ func SendVerificationEmail(receiver, code string) error {
 		Code: code,
 		ExpiresAt: time.Now().Add(time.Minute * 15),
 	}
-	if err := initializers.DB.First(&emailVerification, "email = ?", receiver).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := initializers.DB.Create(&emailVerification).Error; err != nil {
-				return fmt.Errorf("failed to create email verification: %w", err)
-			}
-		} else {
-			return fmt.Errorf("failed to write email verification to db: %w", err)
-		}
+	if err := initializers.DB.Create(&emailVerification).Error; err != nil {
+		return fmt.Errorf("failed to create email verification: %w", err)
 	}
+	// if err := initializers.DB.First(&emailVerification, "email = ?", receiver).Error; err != nil {
+	// 	if errors.Is(err, gorm.ErrRecordNotFound) {
+	// 		if err := initializers.DB.Create(&emailVerification).Error; err != nil {
+	// 			return fmt.Errorf("failed to create email verification: %w", err)
+	// 		}
+	// 	} else {
+	// 		return fmt.Errorf("failed to write email verification to db: %w", err)
+	// 	}
+	// }
 	log.Printf("Email sent from %s to %s", sender, receiver)
 	return nil
 }

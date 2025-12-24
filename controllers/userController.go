@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SignUp(c *gin.Context) {
+func SignUp(c *gin.Context) { // POST auth/register
 
 	var body struct {
 		Email    string `json:"email" binding:"required,email"`
@@ -218,6 +218,7 @@ func ChangeUserInfo(c *gin.Context) {
 	}
 	
 }
+
 func VerifyEmail(c *gin.Context) {
 	var body struct {
 		 Email    string `json:"email" binding:"required,email"`
